@@ -1,3 +1,14 @@
+# 更新说明
+首先感谢原作者共享的代码，由于原来的代码不支持Python3，在此fork后进行适配，以及添加一些使用笔记。
+原地址:https://github.com/migege/dnspod.git
+
+```
+Change: 适配Python3
+Change: 日志现在会同时打印并保存到文件中
+Change: IP没有发生变化时打印提示
+Fix: 修复GetIP方法超时的问题
+```
+
 # dnspod.py
 
 ```
@@ -46,3 +57,5 @@ sub_domains:
 
 1. */10 表示每 10 分钟执行一次 dnspod.py
 1. 如果 python 可执行路径不是 /usr/bin/python，请自行替换
+1. 获取domain_id与record_id请参阅[DNSPod 如何查看域名解析的 domain_id 和 record_id](https://migege.com/post/dnspod-api-domain_id-record-id)
+1. api_token的组成是 `token_ID,token`，例如`888888,123456789abcdef`
