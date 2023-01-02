@@ -1,20 +1,28 @@
 #!/usr/bin/env python
-# -*- coding:utf8 -*-
+# coding=UTF-8
 import os, sys
 import requests
 import socket
 import yaml
 
-reload(sys)
-sys.setdefaultencoding("utf8")
-
-
+global_logger=None
 def logger():
+    global global_logger
+    if global_logger:
+        return global_logger
+
     import logging
-    LOG_FORMAT = "[%(asctime)s]\t[%(levelname)s]\t[%(message)s]"
+    LOG_FORMAT = '%(asctime)s [%(levelname)s] %(message)s'
     LOG_FILE = os.path.join(os.path.dirname(os.path.realpath(__file__)), "log.txt")
     logging.basicConfig(format=LOG_FORMAT, level=logging.DEBUG, filename=LOG_FILE)
-    return logging.getLogger(__name__)
+    
+    handler = logging.StreamHandler()
+    handler.setLevel(logging.DEBUG)
+    handler.setFormatter(logging.Formatter(LOG_FORMAT))
+    logging.getLogger().addHandler(handler)
+
+    global_logger = logging.getLogger(__name__)
+    return global_logger
 
 
 def getopts():
@@ -58,6 +66,9 @@ class DNSPod(object):
                 self.ip = ip
                 Last('last.ip').Write(self.ip)
                 return
+        else:
+            logger().info("IP remains '%s'", ip)
+
         if conf_md5 and conf_md5 != self.conf_md5:
             logger().info("MD5 of conf changed")
             if self.DDns(ip):
@@ -69,11 +80,9 @@ class DNSPod(object):
 
     def GetIP(self):
         try:
-            sock = socket.create_connection(address=('ns1.dnspod.net', 6666), timeout=10)
-            ip = sock.recv(32)
-            sock.close()
+            ip = requests.get('http://ns1.dnspod.net:6666/').text
             return ip
-        except Exception, e:
+        except Exception as e:
             logger().error("GetIP Error: %s", e)
             return None
 
@@ -81,9 +90,9 @@ class DNSPod(object):
         try:
             import hashlib
             import json
-            md5 = hashlib.md5(json.dumps(self.conf)).hexdigest()
+            md5 = hashlib.md5(json.dumps(self.conf).encode('utf-8')).hexdigest()
             return md5
-        except Exception, e:
+        except Exception as e:
             logger().error('GetConfMD5 Error: %s', e)
             return None
 
@@ -121,7 +130,7 @@ class DNSPod(object):
                 else:
                     logger().error("DDns response for subdomain [%s]: %s", sub_domain, r.text)
                     retry_list.append((sub_domain, v))
-            except Exception, e:
+            except Exception as e:
                 logger().error("DDns Error for subdomain [%s]: %s", sub_domain, e)
                 retry_list.append((sub_domain, v))
         return retry_list
@@ -142,6 +151,6 @@ class DNSPod(object):
 
 if __name__ == '__main__':
     opts = getopts()
-    conf = yaml.load(open(os.path.join(os.path.dirname(os.path.realpath(__file__)), opts.config), "r"))
+    conf = yaml.full_load(open(os.path.join(os.path.dirname(os.path.realpath(__file__)), opts.config), "r"))
     dnspod = DNSPod(conf)
     dnspod.run()
